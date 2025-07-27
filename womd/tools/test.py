@@ -65,6 +65,7 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
     joint_pred=False,save_to_file=False):
     # load checkpoint
     if args.ckpt is not None: 
+        print(args.ckpt)
         it, epoch = model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test)
     else:
         it, epoch = -1, -1
@@ -80,6 +81,22 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
         joint_pred=joint_pred, final_output_dir=out_path if save_to_file else None
     )
 
+def eval_single_ckpt_with_sliding_window(model, test_loader, args, eval_output_dir, logger, epoch_id, current_time_stamp,  dist_test=False, joint_pred=False,save_to_file=False):
+    # load checkpoint
+    if args.ckpt is not None: 
+        it, epoch = model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test)
+    else:
+        it, epoch = -1, -1
+    model.cuda()
+
+    logger.info(f'*************** LOAD MODEL (epoch={epoch}, iter={it}) for EVALUATION *****************')
+    # start evaluation
+    out_path = None
+    eval_utils.eval_one_epoch_with_sliding_window(
+        cfg, model, test_loader, epoch_id, current_time_stamp, logger, dist_test=dist_test,
+        result_dir=eval_output_dir, save_to_file=args.save_to_file, 
+        joint_pred=joint_pred, final_output_dir=out_path if save_to_file else None
+    )
 
 def main():
     args, cfg = parse_config()
@@ -137,18 +154,26 @@ def main():
 
     ###### interaction prediction:
     logger.info('starting interactive prediction eval...')
-    test_set, test_loader, sampler = build_dataloader(
-        dataset_cfg=cfg.DATA_CONFIG,
-        batch_size=args.batch_size,
-        dist=dist_test, workers=args.workers, logger=logger, training=False,
-        inter_pred=False
-    )
-    model = build_model(config=cfg.MODEL)
+        # leving at least one timestamp to evaluate
+    for timestamp in range(20,90):  #start 10, max 90
+        cfg.DATA_CONFIG.CURRENT_TIMESTAMP = timestamp
+        test_set, test_loader, sampler = build_dataloader(
+            dataset_cfg=cfg.DATA_CONFIG,
+            batch_size=args.batch_size,
+            dist=dist_test, workers=args.workers, logger=logger, training=False,
+            inter_pred=False
+        )
+        model = build_model(config=cfg.MODEL)
 
-    with torch.no_grad():
-        eval_single_ckpt(model, test_loader, args, eval_output_dir, 
-            logger, epoch_id, dist_test=dist_test, joint_pred=False,
-            save_to_file=args.save_to_file)
+        with torch.no_grad():
+            if cfg.DATA_CONFIG.SLIDING_WINDOW.ENABLE:
+                eval_single_ckpt_with_sliding_window(model, test_loader, args, eval_output_dir, logger, 
+                                                     epoch_id, timestamp,  dist_test=dist_test , joint_pred=False,
+                                                     save_to_file=args.save_to_file)
+            else:
+                eval_single_ckpt(model, test_loader, args, eval_output_dir, 
+                                 logger, epoch_id, dist_test=dist_test, joint_pred=False,
+                                 save_to_file=args.save_to_file)
 
 
 

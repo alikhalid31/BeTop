@@ -786,6 +786,7 @@ class BeTopDecoder(nn.Module):
         pred_scores, pred_trajs, _, _ = pred_list[-1]
         pred_scores = torch.sigmoid(pred_scores)
 
+        num_center_objects, num_query, num_future_timestamps, num_feat = pred_trajs.shape
         if self.num_motion_modes != num_query:
             assert num_query > self.num_motion_modes
             pred_trajs_final, pred_scores_final, selected_idxs = motion_utils.inference_distance_nms(

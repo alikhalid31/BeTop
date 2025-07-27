@@ -27,8 +27,9 @@ class BeTopWaymoDataset(DatasetTemplate):
         # if inter_pred:
         #     self.mode = 'inter_eval'
         self.data_path = self.data_root / self.dataset_cfg.SPLIT_DIR[self.mode]
-
+        self.current_timestamp = self.dataset_cfg.CURRENT_TIMESTAMP
         self.infos = self.get_all_infos(self.data_root / self.dataset_cfg.INFO_FILE[self.mode])
+        self.total_examples = len(self.infos)
         self.logger.info(f'Total scenes after filters: {len(self.infos)}')
 
     def get_all_infos(self, info_path):
@@ -69,12 +70,114 @@ class BeTopWaymoDataset(DatasetTemplate):
         return ret_infos
 
     def __len__(self):
-        return len(self.infos)
+        if self.dataset_cfg.SLIDING_WINDOW.ENABLE:
+            # these lines of code allow to get the same example at differnt timestamps
+            # total_windows = self.dataset_cfg.SLIDING_WINDOW.TOTAL_WINDOWS / self.dataset_cfg.SLIDING_WINDOW.SLIDING_WINDOW_STEP
+            # return len(self.infos) * int(total_windows)
+            return len(self.infos) 
+        else:
+            return len(self.infos)
 
     def __getitem__(self, index):
-        ret_infos = self.create_scene_level_data(index)
+        if self.dataset_cfg.SLIDING_WINDOW.ENABLE:
+
+            # # sliding window mode
+            # base_example_index  =int( index // self.dataset_cfg.SLIDING_WINDOW.TOTAL_WINDOWS)
+            # window_index = int(index % self.dataset_cfg.SLIDING_WINDOW.TOTAL_WINDOWS)
+
+            # if window_index >= self.dataset_cfg.SLIDING_WINDOW.TOTAL_WINDOWS:
+            #     raise ValueError(f'window_index {window_index} exceeds the total windows {self.dataset_cfg.SLIDING_WINDOW.TOTAL_WINDOWS}')
+
+            ret_infos = self.create_scene_level_data_sliding_window(index, self.current_timestamp)
+            # ret_infos = self.create_scene_level_data(index)
+        else:
+            ret_infos = self.create_scene_level_data(index)
 
         return ret_infos
+
+    def create_scene_level_data_sliding_window(self, index, current_timestamp):
+        """
+        Args:
+            index (index):
+
+        Returns:
+
+        """
+        info = self.infos[index]
+        scene_id = info['scenario_id']
+        with open(self.data_path / f'sample_{scene_id}.pkl', 'rb') as f:
+            info = pickle.load(f)
+
+        sdc_track_index = info['sdc_track_index']
+        # current_time_index = info['current_time_index'] + timestamp_offset
+        ## the current_time_index is set to 20 during data preprocessing mistakenly. 
+        current_time_index = current_timestamp
+        timestamp_offset = current_timestamp -10
+
+        timestamps = np.array(info['timestamps_seconds'][timestamp_offset:current_time_index + 1], dtype=np.float32)
+
+        track_infos = info['track_infos']
+
+        track_index_to_predict = np.array(info['tracks_to_predict']['track_index'])
+        obj_types = np.array(track_infos['object_type'])
+        obj_ids = np.array(track_infos['object_id'])
+        obj_trajs_full = track_infos['trajs']  # (num_objects, num_timestamp, 10)
+        obj_trajs_past = obj_trajs_full[:, timestamp_offset:current_time_index + 1]
+        obj_trajs_future = obj_trajs_full[:, current_time_index + 1:]
+
+        center_objects, track_index_to_predict = self.get_interested_agents(
+            track_index_to_predict=track_index_to_predict,
+            obj_trajs_full=obj_trajs_full,
+            current_time_index=current_time_index,
+            obj_types=obj_types, scene_id=scene_id
+        )
+
+        (obj_trajs_data, obj_trajs_mask, obj_trajs_pos, obj_trajs_last_pos, obj_trajs_future_state, obj_trajs_future_mask, center_gt_trajs,
+            center_gt_trajs_mask, center_gt_final_valid_idx,
+            track_index_to_predict_new, sdc_track_index_new, obj_types, obj_ids) = self.create_agent_data_for_center_objects(
+            center_objects=center_objects, obj_trajs_past=obj_trajs_past, obj_trajs_future=obj_trajs_future,
+            track_index_to_predict=track_index_to_predict, sdc_track_index=sdc_track_index,
+            timestamps=timestamps, obj_types=obj_types, obj_ids=obj_ids
+        )
+
+        ret_dict = {
+            'scenario_id': np.array([scene_id] * len(track_index_to_predict)),
+            'obj_trajs': obj_trajs_data,
+            'obj_trajs_mask': obj_trajs_mask,
+            'track_index_to_predict': track_index_to_predict_new,  # used to select center-features
+            'obj_trajs_pos': obj_trajs_pos,
+            'obj_trajs_last_pos': obj_trajs_last_pos,
+            'obj_types': obj_types,
+            'obj_ids': obj_ids,
+
+            'center_objects_world': center_objects,
+            'center_objects_id': np.array(track_infos['object_id'])[track_index_to_predict],
+            'center_objects_type': np.array(track_infos['object_type'])[track_index_to_predict],
+
+            'obj_trajs_future_state': obj_trajs_future_state,
+            'obj_trajs_future_mask': obj_trajs_future_mask,
+            'center_gt_trajs': center_gt_trajs,
+            'center_gt_trajs_mask': center_gt_trajs_mask,
+            'center_gt_final_valid_idx': center_gt_final_valid_idx,
+            'center_gt_trajs_src': obj_trajs_full[track_index_to_predict]
+        }
+
+        if not self.dataset_cfg.get('WITHOUT_HDMAP', False):
+            if info['map_infos']['all_polylines'].__len__() == 0:
+                info['map_infos']['all_polylines'] = np.zeros((2, 7), dtype=np.float32)
+                print(f'Warning: empty HDMap {scene_id}')
+
+            map_polylines_data, map_polylines_mask, map_polylines_center = self.create_map_data_for_center_objects(
+                center_objects=center_objects, map_infos=info['map_infos'],
+                center_offset=self.dataset_cfg.get('CENTER_OFFSET_OF_MAP', (30.0, 0)),
+            )   # (num_center_objects, num_topk_polylines, num_points_each_polyline, 9), (num_center_objects, num_topk_polylines, num_points_each_polyline)
+
+            ret_dict['map_polylines'] = map_polylines_data
+            ret_dict['map_polylines_mask'] = (map_polylines_mask > 0)
+            ret_dict['map_polylines_center'] = map_polylines_center
+
+        return ret_dict
+
 
     def create_scene_level_data(self, index):
         """
@@ -588,14 +691,14 @@ class BeTopWaymoDataset(DatasetTemplate):
 
         return pred_dict_list
 
-    def evaluation(self, pred_dicts, output_path=None, eval_method='waymo', joint_pred=False, **kwargs):
+    def evaluation(self, pred_dicts, output_path=None, eval_method='waymo', eval_sec= 8, joint_pred=False, **kwargs):
         if eval_method == 'waymo':
             from .waymo_eval import waymo_evaluation
             try:
                 num_modes_for_eval = pred_dicts[0][0]['pred_trajs'].shape[0]
             except:
                 num_modes_for_eval = 6
-            metric_results, result_format_str = waymo_evaluation(pred_dicts=pred_dicts, num_modes_for_eval=num_modes_for_eval,
+            metric_results, result_format_str = waymo_evaluation(pred_dicts=pred_dicts, eval_second=eval_sec, num_modes_for_eval=num_modes_for_eval,
             joint_pred=joint_pred)
 
             metric_result_str = '\n'
@@ -609,6 +712,53 @@ class BeTopWaymoDataset(DatasetTemplate):
 
         return metric_result_str, metric_results
 
+    def evaluation_custom(self, pred_dicts, output_path=None, eval_method='waymo', eval_sec= 8, joint_pred=False,  **kwargs):
+        if eval_method == 'waymo':
+            from .waymo_eval import waymo_evaluation_custom
+            try:
+                num_modes_for_eval = pred_dicts[0][0]['pred_trajs'].shape[0]
+            except:
+                num_modes_for_eval = 6
+                
+
+            mAP, minADE, minFDE, missRate = waymo_evaluation_custom(pred_dicts=pred_dicts, eval_second=eval_sec, num_modes_for_eval=num_modes_for_eval, joint_pred=False)
+
+            # metric_result_str = '\n'
+            # for key in metric_results:
+            #     metric_results[key] = metric_results[key]
+            #     metric_result_str += '%s: %.4f \n' % (key, metric_results[key])
+            # metric_result_str += '\n'
+            # metric_result_str += result_format_str
+
+        else:
+            raise NotImplementedError
+
+        # return metric_result_str, metric_results
+        return mAP, minADE, minFDE, missRate
+
+    def evaluation_sliding_window(self, pred_dicts, output_path=None, eval_method='waymo', eval_sec= 8, current_time_stamp=10, joint_pred=False,  **kwargs):
+        if eval_method == 'waymo':
+            from .waymo_eval import waymo_evaluation_sliding_window
+            try:
+                num_modes_for_eval = pred_dicts[0][0]['pred_trajs'].shape[0]
+            except:
+                num_modes_for_eval = 6
+                
+
+            mAP, minADE, minFDE, missRate = waymo_evaluation_sliding_window(pred_dicts=pred_dicts, eval_second=eval_sec, current_time_stamp=current_time_stamp, num_modes_for_eval=num_modes_for_eval, joint_pred=False)
+
+            # metric_result_str = '\n'
+            # for key in metric_results:
+            #     metric_results[key] = metric_results[key]
+            #     metric_result_str += '%s: %.4f \n' % (key, metric_results[key])
+            # metric_result_str += '\n'
+            # metric_result_str += result_format_str
+
+        else:
+            raise NotImplementedError
+
+        # return metric_result_str, metric_results
+        return mAP, minADE, minFDE, missRate
 
 if __name__ == '__main__':
     import argparse

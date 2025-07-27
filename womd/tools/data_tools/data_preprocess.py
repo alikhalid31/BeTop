@@ -8,6 +8,7 @@ Mostly from Motion Transformer (MTR): https://arxiv.org/abs/2209.13508
 
 import sys, os
 os.environ['CUDA_VISIBLE_DEVICES']="-1"
+sys.path.insert(0, '../../')
 import numpy as np
 import pickle
 import tensorflow as tf
@@ -177,7 +178,7 @@ def process_waymo_data_with_scenario_proto(data_file, output_path=None):
     for cnt, data in enumerate(dataset):
         info = {}
         scenario = scenario_pb2.Scenario()
-        scenario.ParseFromString(bytearray(data.numpy()))
+        scenario.ParseFromString(bytes(data.numpy()))
 
         info['scenario_id'] = scenario.scenario_id
         info['timestamps_seconds'] = list(scenario.timestamps_seconds)  # list of int of shape (91)
@@ -233,22 +234,32 @@ def get_infos_from_protos(data_path, output_path=None, num_workers=8):
 
 
 def create_infos_from_protos(raw_data_path, output_path, num_workers=16):
-    train_infos = get_infos_from_protos(
-        data_path=os.path.join(raw_data_path, 'training'),
-        output_path=os.path.join(output_path, 'processed_scenarios_training'),
-        num_workers=num_workers
-    )
-    train_filename = os.path.join(output_path, 'processed_scenarios_training_infos.pkl')
-    with open(train_filename, 'wb') as f:
-        pickle.dump(train_infos, f)
-    print('----------------Waymo info train file is saved to %s----------------' % train_filename)
+    # train_infos = get_infos_from_protos(
+    #     data_path=os.path.join(raw_data_path, 'training'),
+    #     output_path=os.path.join(output_path, 'processed_scenarios_training'),
+    #     num_workers=num_workers
+    # )
+    # train_filename = os.path.join(output_path, 'processed_scenarios_training_infos.pkl')
+    # with open(train_filename, 'wb') as f:
+    #     pickle.dump(train_infos, f)
+    # print('----------------Waymo info train file is saved to %s----------------' % train_filename)
+
+    # val_infos = get_infos_from_protos(
+    #     data_path=os.path.join(raw_data_path, 'validation'),
+    #     output_path=os.path.join(output_path, 'processed_scenarios_validation'),
+    #     num_workers=num_workers
+    # )
+    # val_filename = os.path.join(output_path, 'processed_scenarios_val_infos.pkl')
+    # with open(val_filename, 'wb') as f:
+    #     pickle.dump(val_infos, f)
+    # print('----------------Waymo info val file is saved to %s----------------' % val_filename)
 
     val_infos = get_infos_from_protos(
-        data_path=os.path.join(raw_data_path, 'validation'),
-        output_path=os.path.join(output_path, 'processed_scenarios_validation'),
+        data_path=os.path.join(raw_data_path, 'validation_interactive'),
+        output_path=os.path.join(output_path, 'processed_scenarios_validation_interactive'),
         num_workers=num_workers
     )
-    val_filename = os.path.join(output_path, 'processed_scenarios_val_infos.pkl')
+    val_filename = os.path.join(output_path, 'processed_scenarios_val_inter_infos.pkl')
     with open(val_filename, 'wb') as f:
         pickle.dump(val_infos, f)
     print('----------------Waymo info val file is saved to %s----------------' % val_filename)
@@ -277,7 +288,11 @@ def create_test_infos_from_protos(raw_data_path, output_path, num_workers=16):
 
 
 if __name__ == '__main__':
-    create_test_infos_from_protos(
+    # create_test_infos_from_protos(
+    #     raw_data_path=sys.argv[1],
+    #     output_path=sys.argv[2]
+    # )
+    create_infos_from_protos(
         raw_data_path=sys.argv[1],
         output_path=sys.argv[2]
     )

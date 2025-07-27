@@ -31,7 +31,7 @@ def build_dataloader(dataset_cfg, batch_size, dist, workers=4,
         np_seed = torch_seed // 2 ** 32 - 1
         np.random.seed(np_seed)
     
-    finetune = False
+    finetune = True
     if training and (finetune==False):
         dataset = __all__['BeTopWaymoCacheDataset'](
             dataset_cfg=dataset_cfg,
@@ -65,7 +65,8 @@ def build_dataloader(dataset_cfg, batch_size, dist, workers=4,
     if training or inter_pred:
         input_batch_size = batch_size
     else:
-       input_batch_size =  4
+    #    input_batch_size =  4
+        input_batch_size = batch_size 
     dataloader = DataLoader(
         dataset, batch_size=input_batch_size, pin_memory=True, num_workers=workers,
         shuffle=(sampler is None) and training, collate_fn=dataset.collate_batch,
