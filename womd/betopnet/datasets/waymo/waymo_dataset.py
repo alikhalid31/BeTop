@@ -659,6 +659,7 @@ class BeTopWaymoDataset(DatasetTemplate):
                     'pred_scores': pred_scores[obj_idx, :].cpu().numpy() if not joint_pred else pred_scores[obj_idx, :],
                     'object_id': input_dict['center_objects_id'][obj_idx],
                     'object_type': input_dict['center_objects_type'][obj_idx],
+                    'valid_gt': np.array(input_dict['center_gt_trajs'][obj_idx].shape[0]),
                     'track_index_to_predict': input_dict['track_index_to_predict'][obj_idx].cpu().numpy()
                 }
     

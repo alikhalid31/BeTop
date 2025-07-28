@@ -198,13 +198,16 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
     forward_times = [] 
     pred_dicts = []
     for i, batch_dict in enumerate(dataloader):
-        if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
-            continue
+        # if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
+        #     continue
+        # else:
+        #     count += 1
+        #     if count < 2:
+        #         continue     
 
-        else:
-            count += 1
-            if count < 2:
-                continue     
+        # print (batch_dict['input_dict']['obj_trajs_pos'][:,1,:,:2])
+        # break
+        # exit()
 
         with torch.no_grad():
             start_forward = perf_counter()
@@ -227,6 +230,9 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
             logger.info(f'eval: epoch={epoch_id}, batch_iter={i}/{len(dataloader)}, batch_size={batch_size}, iter_cost={second_each_iter:.2f}s, '
                         f'time_cost: {progress_bar.format_interval(past_time)}/{progress_bar.format_interval(remaining_time)}, '
                         f'{disp_str}')
+            
+        # break
+
     if len(forward_times) > 0:
         # print(forward_times)
         avg_forward_time = sum(forward_times) / len(forward_times)
