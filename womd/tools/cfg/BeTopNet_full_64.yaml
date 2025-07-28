@@ -7,7 +7,7 @@ DATA_CONFIG:
     
     SPLIT_DIR: {
         'train': 'processed_scenarios_training', 
-        'eval': 'processed_scenarios_validation',
+        'eval': 'processed_scenarios_debuging',
         'inter_eval': 'processed_scenarios_validation_interactive',
         'test': 'processed_scenarios_testing',
         'inter_test': 'processed_scenarios_testing_interactive'
@@ -15,7 +15,7 @@ DATA_CONFIG:
 
     INFO_FILE: {
         'train': 'processed_scenarios_training_infos.pkl', 
-        'eval': 'processed_scenarios_val_infos.pkl',
+        'eval': 'processed_scenarios_debuging_infos.pkl',
         'inter_eval': 'processed_scenarios_val_inter_infos.pkl',
         'test': 'processed_scenarios_test_infos.pkl',
         'inter_test': 'processed_scenarios_test_inter_infos.pkl',
