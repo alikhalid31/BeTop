@@ -147,7 +147,7 @@ def select_distinct_anchors(
 def inference_distance_nms(
     pred_scores, pred_trajs,
     lower_dist=2.5, upper_dist=3.5, 
-    lower_length=10, upper_length=50, scalar=1.5
+    lower_length=10, upper_length=50, scalar=1.5 , num_ret_modes=6
     ):
     """
     Perform NMS post-processing during inference
@@ -167,9 +167,8 @@ def inference_distance_nms(
 
     pred_trajs_final, pred_scores_final, selected_idxs = batch_nms(
         pred_trajs=pred_trajs, pred_scores=pred_scores,
-        dist_thresh=dist_thresh
-        ,
-        num_ret_modes=1
+        dist_thresh=dist_thresh,
+        num_ret_modes=num_ret_modes
     )
     return pred_trajs_final, pred_scores_final, selected_idxs
 

@@ -794,8 +794,9 @@ def transform_preds_to_waymo_format_sliding_window(pred_dicts, top_k_for_eval=-1
     if top_k_for_eval != -1:
         topK = min(top_k_for_eval, topK)
 
-    if num_future_frames in [10, 30, 50, 70, 80]:
-        sampled_interval = 1
+    sampled_interval = 1
+    # if num_future_frames in [10, 30, 50, 70, 80]:
+    #     sampled_interval = 1
         # sampled_interval = 5
     assert num_future_frames % sampled_interval == 0, f'num_future_frames={num_future_frames}'
     num_frame_to_eval = num_future_frames // sampled_interval
@@ -875,6 +876,27 @@ def transform_preds_to_waymo_format_sliding_window(pred_dicts, top_k_for_eval=-1
 
             object_type_cnt_dict[cur_pred['object_type']] += 1
 
+    # to print last prediction
+    # print(cur_pred['pred_trajs'][:,-1,:])
+    # print(cur_pred['gt_trajs'][ -1, :2])
+
+    # to print all predictions
+
+    # for i in range(len(cur_pred['pred_trajs'][0])):
+    #     print(i, cur_pred['pred_trajs'][:,i,:])
+    # for i in range(len(cur_pred['gt_trajs'])):
+    #     print(i, cur_pred['gt_trajs'][ i, :2])
+
+
+    # print(batch_pred_trajs[0][0][0][0])
+    # print(gt_trajs[0][0])
+
+    # for i in range(len(batch_pred_trajs[0][0][0][0])):
+    #     print('prediction no ', i)
+    #     print(batch_pred_trajs[0][0][0][0][i])
+    #     print(gt_trajs[0][0][i+11, :2])
+
+    exit()
     gt_infos = {
         'scenario_id': scenario_id.tolist(),
         'object_id': object_id.tolist(),

@@ -112,6 +112,7 @@ class BeTopWaymoDataset(DatasetTemplate):
         # current_time_index = info['current_time_index'] + timestamp_offset
         ## the current_time_index is set to 20 during data preprocessing mistakenly. 
         current_time_index = current_timestamp
+        # current_time_index = 10
         timestamp_offset = current_timestamp -10
 
         timestamps = np.array(info['timestamps_seconds'][timestamp_offset:current_time_index + 1], dtype=np.float32)
@@ -194,6 +195,7 @@ class BeTopWaymoDataset(DatasetTemplate):
 
         sdc_track_index = info['sdc_track_index']
         current_time_index = info['current_time_index']
+        current_time_index = 10
         timestamps = np.array(info['timestamps_seconds'][:current_time_index + 1], dtype=np.float32)
 
         track_infos = info['track_infos']

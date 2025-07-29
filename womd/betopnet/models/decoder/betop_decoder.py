@@ -790,7 +790,7 @@ class BeTopDecoder(nn.Module):
         if self.num_motion_modes != num_query:
             assert num_query > self.num_motion_modes
             pred_trajs_final, pred_scores_final, selected_idxs = motion_utils.inference_distance_nms(
-                pred_scores, pred_trajs
+                pred_scores, pred_trajs, num_ret_modes=self.num_motion_modes
             )
         else:
             pred_trajs_final = pred_trajs

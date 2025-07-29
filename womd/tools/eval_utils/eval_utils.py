@@ -100,21 +100,21 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False,
     with open(result_dir / 'result.pkl', 'wb') as f:
         pickle.dump(pred_dicts, f)
 
-    mAP, minADE, minFDE, missRate = dataset.evaluation_custom(
-    pred_dicts,
-    output_path=final_output_dir, 
-    eval_sec=3
-    )
-    logger.info('****************Evaluation for T=3.*****************')
-    data = {
-    'minADE': minADE,
-    'minFDE': minFDE,
-    'mAP': mAP,
-    'missRate': missRate
-    }
-    with open('results_mode_1_betop.json', 'w') as f:
-        # print('here')
-        json.dump(data, f, indent=2)
+    # mAP, minADE, minFDE, missRate = dataset.evaluation_custom(
+    # pred_dicts,
+    # output_path=final_output_dir, 
+    # eval_sec=3
+    # )
+    # logger.info('****************Evaluation for T=3.*****************')
+    # data = {
+    # 'minADE': minADE,
+    # 'minFDE': minFDE,
+    # 'mAP': mAP,
+    # 'missRate': missRate
+    # }
+    # with open('results_mode_1_betop.json', 'w') as f:
+    #     # print('here')
+    #     json.dump(data, f, indent=2)
 
 
     # result_str, result_dict = dataset.evaluation(
@@ -147,18 +147,18 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False,
     # logger.info(result_str)
     # ret_dict.update(result_dict)
 
-    # result_str, result_dict = dataset.evaluation(
-    #     pred_dicts,
-    #     output_path=final_output_dir, 
-    #     joint_pred=joint_pred,
-    #     eval_sec=8
-    # )
-    # logger.info('****************Evaluation for T=8.*****************')
-    # logger.info(result_str)
-    # ret_dict.update(result_dict)
+    result_str, result_dict = dataset.evaluation(
+        pred_dicts,
+        output_path=final_output_dir, 
+        joint_pred=joint_pred,
+        eval_sec=8
+    )
+    logger.info('****************Evaluation for T=8.*****************')
+    logger.info(result_str)
+    ret_dict.update(result_dict)
 
-    # logger.info('Result is save to %s' % result_dir)
-    # logger.info('****************Evaluation done.*****************')
+    logger.info('Result is save to %s' % result_dir)
+    logger.info('****************Evaluation done.*****************')
 
     return ret_dict
 
@@ -198,12 +198,12 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
     forward_times = [] 
     pred_dicts = []
     for i, batch_dict in enumerate(dataloader):
-        # if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
-        #     continue
-        # else:
-        #     count += 1
-        #     if count < 2:
-        #         continue     
+        if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
+            continue
+        else:
+            count += 1
+            if count < 2:
+                continue     
 
         # print (batch_dict['input_dict']['obj_trajs_pos'][:,1,:,:2])
         # break
@@ -214,6 +214,7 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
             batch_pred_dicts = model(batch_dict)
             end_forward = perf_counter()
             forward_times.append(end_forward - start_forward) 
+            print(batch_pred_dicts['pred_scores'])
            
             final_pred_dicts = dataset.generate_prediction_dicts(batch_pred_dicts, 
                 joint_pred=joint_pred, output_path=final_output_dir if save_to_file else None)
@@ -231,7 +232,7 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
                         f'time_cost: {progress_bar.format_interval(past_time)}/{progress_bar.format_interval(remaining_time)}, '
                         f'{disp_str}')
             
-        # break
+        break
 
     if len(forward_times) > 0:
         # print(forward_times)
