@@ -10,7 +10,7 @@ output_path =  './'
 file_pattern = os.path.join(folder_path, 'sliding_window_results_mode_6_timestamp_variable_*.json')
 # Dict to store timestamp -> FDE at 80
 fde_at_80 = {}
-current_timestamp = 40 # The timestamp you are interested in
+current_timestamp = 91 # The timestamp you are interested in
 max_pred_timestamp = 91  # Maximum timestamp index to consider
 # Iterate over all matching files
 for file_path in glob.glob(file_pattern):
@@ -49,9 +49,10 @@ fde_values = [item[1] for item in sorted_items]
 # Plot
 plt.figure(figsize=(10, 5))
 plt.plot(timestamps, fde_values, marker='o')
-plt.xlabel('Evaluation Timestamp')
-plt.ylabel('FDE at Predicted Timestamp 90')
-plt.title('FDE at Time Step 90 vs Evaluation Time')
+plt.ylim(0, 12)
+plt.xlabel('Inference Timestamp')
+plt.ylabel('FDE (m) ')
+plt.title('FDE at Time Step 90 vs infernce Time')
 plt.grid(True)
 plt.tight_layout()
 

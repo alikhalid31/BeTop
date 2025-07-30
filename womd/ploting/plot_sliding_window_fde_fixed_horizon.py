@@ -27,12 +27,12 @@ for file_path in glob.glob(file_pattern):
 
     # Assume data is a list of dictionaries, and each dict has 'FDE' as a list
     # You want FDE at predicted timestamp = 80 (i.e., index 79)
-    if 'minFDE' in data and len(data['minFDE']) > max_pred_timestamp - current_timestamp:
+    if 'minFDE' in data and len(data['minFDE']) >= current_timestamp:
         # continue
         # print(f"Timestamp: {timestamp}")
         # print(-((max_pred_timestamp - current_timestamp)+1))
         # print(len(data['minFDE']))
-        fde_value = data['minFDE'][-((max_pred_timestamp - current_timestamp)+1)]
+        fde_value = data['minFDE'][current_timestamp-1]
         fde_at_80[timestamp] = fde_value
     else:
         continue
@@ -49,14 +49,14 @@ fde_values = [item[1] for item in sorted_items]
 # Plot
 plt.figure(figsize=(10, 5))
 plt.plot(timestamps, fde_values, marker='o')
-plt.xlabel('Evaluation Timestamp')
-plt.ylabel('FDE at Predicted Timestamp 90')
-plt.title('FDE at Time Step 90 vs Evaluation Time')
+plt.xlabel('Inference Timestamp')
+plt.ylabel('FDE (m)')
+plt.title('FDE at time horizon 30 vs Inference Time')
 plt.grid(True)
 plt.tight_layout()
 
 # Save the plot
-output_path = os.path.join(output_path, 'fde_vs_timestamp_plot_debuging.png')
+output_path = os.path.join(output_path, 'fde_vs_timehorizon_plot_debuging.png')
 plt.savefig(output_path)
 
 print(f"Plot saved to: {output_path}")

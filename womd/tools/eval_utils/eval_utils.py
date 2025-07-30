@@ -198,12 +198,12 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
     forward_times = [] 
     pred_dicts = []
     for i, batch_dict in enumerate(dataloader):
-        if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
-            continue
-        else:
-            count += 1
-            if count < 2:
-                continue     
+        # if len(batch_dict['input_dict']['track_index_to_predict']) != 1:
+        #     continue
+        # else:
+        #     count += 1
+        #     if count < 2:
+        #         continue     
 
         # print (batch_dict['input_dict']['obj_trajs_pos'][:,1,:,:2])
         # break
@@ -232,7 +232,7 @@ def eval_one_epoch_with_sliding_window(cfg, model, dataloader, epoch_id, current
                         f'time_cost: {progress_bar.format_interval(past_time)}/{progress_bar.format_interval(remaining_time)}, '
                         f'{disp_str}')
             
-        break
+        # break
 
     if len(forward_times) > 0:
         # print(forward_times)

@@ -155,7 +155,7 @@ def main():
     ###### interaction prediction:
     logger.info('starting interactive prediction eval...')
         # leving at least one timestamp to evaluate
-    for timestamp in range(40,41):  #start 10, max 90
+    for timestamp in range(10,91):  #start 10, max 90
         cfg.DATA_CONFIG.CURRENT_TIMESTAMP = timestamp
         test_set, test_loader, sampler = build_dataloader(
             dataset_cfg=cfg.DATA_CONFIG,

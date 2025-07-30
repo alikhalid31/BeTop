@@ -896,7 +896,7 @@ def transform_preds_to_waymo_format_sliding_window(pred_dicts, top_k_for_eval=-1
     #     print(batch_pred_trajs[0][0][0][0][i])
     #     print(gt_trajs[0][0][i+11, :2])
 
-    exit()
+    # exit()
     gt_infos = {
         'scenario_id': scenario_id.tolist(),
         'object_id': object_id.tolist(),
